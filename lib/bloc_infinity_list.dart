@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'infinite_list_bloc/infinite_list_bloc.dart';
 
+/// A widget that displays a scrollable list of items using a [InfiniteListBloc].
 class InfiniteListView<T> extends StatefulWidget {
   final InfiniteListBloc<T> bloc;
   final Widget Function(BuildContext context, T item) itemBuilder;
@@ -13,6 +14,7 @@ class InfiniteListView<T> extends StatefulWidget {
   final Widget Function(BuildContext context)? emptyWidget;
   final EdgeInsetsGeometry? padding;
 
+  /// Constructs an [InfiniteListView] widget.
   const InfiniteListView({
     super.key,
     required this.bloc,
@@ -46,6 +48,7 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
     super.dispose();
   }
 
+  /// Handles the scroll events and triggers loading more items if scrolled to the bottom.
   void _onScroll() {
     if (_debounce?.isActive ?? false) return;
     if (_isBottom && !_isLoadingMore) {
@@ -58,6 +61,7 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
     });
   }
 
+  /// Checks if the list view is scrolled to the bottom.
   bool get _isBottom {
     if (!_scrollController.hasClients) return false;
     final double maxScroll = _scrollController.position.maxScrollExtent;
@@ -68,6 +72,7 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
     return currentState is LoadedState<T> && currentScroll >= maxScroll;
   }
 
+  /// Initiates the loading of more items.
   void _loadMore() {
     setState(() {
       _isLoadingMore = true;
@@ -123,6 +128,7 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
     );
   }
 
+  /// Builds the widget for the bottom indicator based on the current state.
   Widget _bottomIndicator(
       BuildContext context, BaseInfiniteListState<T> state) {
     return switch (state) {
@@ -132,6 +138,7 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
     };
   }
 
+  /// Builds the widget for an empty list.
   Widget _emptyWidget(BuildContext context) =>
       widget.emptyWidget?.call(context) ??
       Center(
@@ -141,11 +148,13 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
         ),
       );
 
+  /// Builds the widget for the loading indicator.
   Widget _loadingWidget(BuildContext context) {
     return widget.loadingWidget?.call(context) ??
         const Center(child: CircularProgressIndicator.adaptive());
   }
 
+  /// Builds the widget for displaying an error.
   Widget _errorWidget(BuildContext context, Exception error) {
     return widget.errorWidget?.call(context, error.toString()) ??
         Center(child: Text(error.toString()));

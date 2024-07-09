@@ -5,10 +5,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 part 'infinite_list_event.dart';
 part 'infinite_list_state.dart';
 
+/// Abstract class representing a BLoC (Business Logic Component) for handling infinite lists.
+///
+/// This BLoC manages the state of an infinite list, handling events to load initial items and
+/// more items as the user scrolls. It extends [Bloc] and emits [BaseInfiniteListState]s.
 abstract class InfiniteListBloc<T>
     extends Bloc<InfiniteListEvent, BaseInfiniteListState<T>> {
+  /// Default limit for fetching items in a single request.
   static const int limit = 10;
 
+  /// Initializes the InfiniteListBloc with an initial state of [InitialState].
   InfiniteListBloc() : super(InitialState<T>()) {
     on<LoadItemsEvent>((event, emit) async {
       debugPrint("\n LoadItemsEvent...");
@@ -48,5 +54,9 @@ abstract class InfiniteListBloc<T>
     });
   }
 
+  /// Abstract method to be implemented by subclasses to fetch items from an external source.
+  ///
+  /// This method should be overridden to define how items are fetched based on the provided [limit]
+  /// and [offset].
   Future<List<T>> fetchItems({required int limit, required int offset});
 }
