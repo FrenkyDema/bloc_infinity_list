@@ -1,6 +1,6 @@
 name: bloc_infinity_list
 description: "Infinite scrolling ListView with BLoC integration for Flutter applications."
-version: 0.0.1
+version: 0.0.2
 homepage: "https://github.com/FrenkyDema/bloc_infinity_list"
 
 environment:
