@@ -105,9 +105,7 @@ class MyListPage extends StatelessWidget {
 Add the following dependency to your `pubspec.yaml` file:
 
 ```yaml
-dependencies:
-  infinite_list_view: ^1.0.0
-  flutter_bloc: ^8.0.0
+flutter pub add bloc_infinity_list
 ```
 
 ### Conclusion
