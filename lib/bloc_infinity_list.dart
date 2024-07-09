@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -27,6 +29,8 @@ class InfiniteListView<T> extends StatefulWidget {
 
 class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
   final ScrollController _scrollController = ScrollController();
+  bool _isLoadingMore = false;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -38,13 +42,20 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
   void _onScroll() {
-    if (_isBottom) {
-      widget.bloc.add(LoadMoreItemsEvent());
+    if (_debounce?.isActive ?? false) return;
+    if (_isBottom && !_isLoadingMore) {
+      _loadMore();
     }
+    _debounce = Timer(Durations.medium1, () {
+      setState(() {
+        _isLoadingMore = false;
+      });
+    });
   }
 
   bool get _isBottom {
@@ -57,6 +68,16 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
     return currentState is LoadedState<T> && currentScroll >= maxScroll;
   }
 
+  void _loadMore() {
+    setState(() {
+      _isLoadingMore = true;
+    });
+    widget.bloc.add(LoadMoreItemsEvent());
+    widget.bloc.stream
+        .firstWhere((event) => event is! LoadingState)
+        .then((_) {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<InfiniteListBloc<T>, BaseInfiniteListState<T>>(
@@ -65,8 +86,7 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
         if (state is InitialState<T>) {
           return _loadingWidget(context);
         } else if (state is ErrorState<T>) {
-          return widget.errorWidget?.call(context, state.error.toString()) ??
-              Center(child: Text(state.error.toString()));
+          return _errorWidget(context, state.error);
         } else if (state is LoadedState<T> ||
             state is NoMoreItemsState<T> ||
             state is LoadingState) {
@@ -124,5 +144,10 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
   Widget _loadingWidget(BuildContext context) {
     return widget.loadingWidget?.call(context) ??
         const Center(child: CircularProgressIndicator.adaptive());
+  }
+
+  Widget _errorWidget(BuildContext context, Exception error) {
+    return widget.errorWidget?.call(context, error.toString()) ??
+        Center(child: Text(error.toString()));
   }
 }
