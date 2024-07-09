@@ -101,10 +101,10 @@ class MyListPage extends StatelessWidget {
 ```
 
 ### Installation
+Run this command:
 
-Add the following dependency to your `pubspec.yaml` file:
-
-```yaml
+With Flutter:
+```cmd
 flutter pub add bloc_infinity_list
 ```
 
