@@ -1,8 +1,38 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:flutter/services.dart';
 import 'package:bloc_infinity_list/bloc_infinity_list.dart';
+import 'package:bloc_infinity_list/infinite_list_bloc/infinite_list_bloc.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+class ListItem {
+  static int staticId = 0;
+
+  final int id;
+  final String name;
+
+  ListItem({required this.name}) : id = ++staticId;
+}
+
+class MyCustomBloc extends InfiniteListBloc<ListItem> {
+  @override
+  Future<List<ListItem>> fetchItems(
+      {required int limit, required int offset}) async {
+    try {
+      await Future.delayed(Durations.long1);
+
+      return [
+        ListItem(name: "Test"),
+        ListItem(name: "Test"),
+        ListItem(name: "Test"),
+        ListItem(name: "Test"),
+        ListItem(name: "Test"),
+      ];
+    } on Exception {
+      rethrow;
+    }
+  }
+}
 
 void main() {
   runApp(const MyApp());
@@ -16,46 +46,39 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
-  final _blocInfinityListPlugin = BlocInfinityList();
-
-  @override
-  void initState() {
-    super.initState();
-    initPlatformState();
-  }
-
-  // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    // We also handle the message potentially returning null.
-    try {
-      platformVersion =
-          await _blocInfinityListPlugin.getPlatformVersion() ?? 'Unknown platform version';
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
-  }
+  final MyCustomBloc bloc = MyCustomBloc();
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Plugin example app'),
+          title: const Text('Infinite List'),
         ),
-        body: Center(
-          child: Text('Running on: $_platformVersion\n'),
+        body: BlocProvider.value(
+          value: bloc,
+          child: InfiniteListView<ListItem>(
+            bloc: bloc,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+            itemBuilder: (context, item) {
+              return ListTile(
+                title: Text(item.name),
+                subtitle: Text(item.id.toString()),
+              );
+            },
+            loadingWidget: (context) => Container(
+              alignment: Alignment.center,
+              padding: const EdgeInsets.all(20),
+              child: CircularProgressIndicator.adaptive(
+                strokeWidth: 2.0,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.secondary,
+                ),
+              ),
+            ),
+            errorWidget: (context, error) => Center(child: Text(error)),
+            emptyWidget: (context) => const Center(child: Text('No items')),
+          ),
         ),
       ),
     );
