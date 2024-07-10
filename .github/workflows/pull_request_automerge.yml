@@ -22,7 +22,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           MERGE_LABELS: "dependencies"
-          MERGE_FILTER_AUTHOR: "dependabot"
+          MERGE_FILTER_AUTHOR: "dependabot[bot]"
           LOG: "TRACE"
           MERGE_METHOD: "squash"
           
