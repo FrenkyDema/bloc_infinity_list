@@ -21,13 +21,12 @@ class MyCustomBloc extends InfiniteListBloc<ListItem> {
     try {
       await Future.delayed(Durations.long1);
 
-      return [
-        ListItem(name: "Test"),
-        ListItem(name: "Test"),
-        ListItem(name: "Test"),
-        ListItem(name: "Test"),
-        ListItem(name: "Test"),
-      ];
+      if (offset >= 100) {
+        return [];
+      }
+
+      return List.generate(
+          limit, (index) => ListItem(name: 'Item ${offset + index + 1}'));
     } on Exception {
       rethrow;
     }
@@ -49,11 +48,17 @@ class _MyAppState extends State<MyApp> {
   final MyCustomBloc bloc = MyCustomBloc();
 
   @override
+  void dispose() {
+    bloc.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Infinite List'),
+          title: const Text('Infinite ListView Example'),
         ),
         body: BlocProvider.value(
           value: bloc,
@@ -61,18 +66,14 @@ class _MyAppState extends State<MyApp> {
             bloc: bloc,
             color: Colors.black12,
             borderRadius: BorderRadius.circular(10),
-            padding: const EdgeInsets.only(
-              top: 20,
-              bottom: 20 * 3,
-              left: 20,
-              right: 20,
-            ),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 60),
             itemBuilder: (context, item) {
               return ListTile(
                 title: Text(item.name),
-                subtitle: Text(item.id.toString()),
+                subtitle: Text('ID: ${item.id}'),
               );
             },
+            dividerWidget: const Divider(),
             loadingWidget: (context) => Container(
               alignment: Alignment.center,
               padding: const EdgeInsets.all(20),
@@ -83,8 +84,15 @@ class _MyAppState extends State<MyApp> {
                 ),
               ),
             ),
-            errorWidget: (context, error) => Center(child: Text(error)),
-            emptyWidget: (context) => const Center(child: Text('No items')),
+            errorWidget: (context, error) => Center(
+              child: Text(
+                'Error: $error',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+            emptyWidget: (context) => const Center(
+              child: Text('No items available'),
+            ),
           ),
         ),
       ),

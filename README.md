@@ -16,6 +16,9 @@ more items as the user scrolls to the bottom of the list.
   efficient data fetching.
 - **BLoC Integration**: Works with `flutter_bloc` to manage states and events, ensuring a clean and
   maintainable codebase.
+- **UI Customization**: Customize the list container with color, border radius, border color, border
+  width, and box shadow.
+- **Custom Dividers**: Add custom dividers between list items using the `dividerWidget`.
 
 ### Usage
 
@@ -37,79 +40,18 @@ class MyListPage extends StatelessWidget {
       appBar: AppBar(title: Text('Infinite ListView Example')),
       body: InfiniteListView<MyItem>(
         bloc: bloc,
-        itemBuilder: (context, item) =>
-            ListTile(
-              title: Text(item.name),
-            ),
+        itemBuilder: (context, item) => ListTile(title: Text(item.name)),
+        dividerWidget: Divider(), // Custom divider between items
         loadingWidget: (context) => Center(child: CircularProgressIndicator()),
         errorWidget: (context, error) => Center(child: Text('Error: $error')),
         emptyWidget: (context) => Center(child: Text('No items available')),
+        padding: EdgeInsets.all(16.0),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10.0),
+        borderColor: Colors.grey,
+        borderWidth: 2.0,
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5.0)],
       ),
     );
   }
 }
-```
-
-### Parameters
-
-- `bloc` (required): The instance of your BLoC that extends `InfiniteListBloc`.
-- `itemBuilder` (required): A function that builds the widget for each item in the list.
-- `loadingWidget`: A widget to display while the list is loading.
-- `errorWidget`: A widget to display when an error occurs.
-- `emptyWidget`: A widget to display when there are no items in the list.
-- `padding`: Padding for the list view.
-
-### Example
-
-Here is a more detailed example showing how to use the InfiniteListView with a BLoC:
-
-```dart
-class MyItem {
-  final String name;
-
-  MyItem(this.name);
-}
-
-class MyListBloc extends InfiniteListBloc<MyItem> {
-  @override
-  Future<List<MyItem>> fetchItems(int offset) async {
-    await Future.delayed(Duration(seconds: 2)); // Simulate network delay
-    return List.generate(20, (index) => MyItem('Item ${index + offset}'));
-  }
-}
-
-class MyListPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final MyListBloc bloc = MyListBloc();
-
-    return Scaffold(
-      appBar: AppBar(title: Text('Infinite ListView Example')),
-      body: InfiniteListView<MyItem>(
-        bloc: bloc,
-        itemBuilder: (context, item) =>
-            ListTile(
-              title: Text(item.name),
-            ),
-        loadingWidget: (context) => Center(child: CircularProgressIndicator()),
-        errorWidget: (context, error) => Center(child: Text('Error: $error')),
-        emptyWidget: (context) => Center(child: Text('No items available')),
-      ),
-    );
-  }
-}
-```
-
-### Installation
-Run this command:
-
-With Flutter:
-```cmd
-flutter pub add bloc_infinity_list
-```
-
-### Conclusion
-
-The **Infinite ListView** widget provides an easy and efficient way to implement infinite scrolling
-in your Flutter applications. By leveraging the power of BLoC and debouncing, it ensures a smooth
-user experience while keeping your code clean and maintainable.

@@ -1,3 +1,9 @@
+## 0.0.5
+
+Documentation refactoring
+Custom divider
+
+
 ## 0.0.4
 
 Added customization options
