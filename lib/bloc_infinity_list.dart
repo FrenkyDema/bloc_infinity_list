@@ -7,17 +7,40 @@ import 'infinite_list_bloc/infinite_list_bloc.dart';
 
 /// A widget that displays a scrollable list of items using a [InfiniteListBloc].
 class InfiniteListView<T> extends StatefulWidget {
+  /// The BLoC responsible for fetching and managing the list items.
   final InfiniteListBloc<T> bloc;
+
+  /// A function that builds the widget for each item in the list.
   final Widget Function(BuildContext context, T item) itemBuilder;
+
+  /// A widget to display while the list is loading.
   final Widget Function(BuildContext context)? loadingWidget;
+
+  /// A widget to display when an error occurs.
   final Widget Function(BuildContext context, String error)? errorWidget;
+
+  /// A widget to display when there are no items in the list.
   final Widget Function(BuildContext context)? emptyWidget;
+
+  /// A widget to display between the items in the list.
+  final Widget? dividerWidget;
+
+  /// The padding for the list view.
   final EdgeInsetsGeometry? padding;
+
+  /// The background color of the list view.
   final Color? color;
 
+  /// The border radius of the list view.
   final BorderRadiusGeometry? borderRadius;
+
+  /// The border color of the list view.
   final Color borderColor;
+
+  /// The border width of the list view.
   final double borderWidth;
+
+  /// The box shadow for the list view.
   final List<BoxShadow>? boxShadow;
 
   /// Constructs an [InfiniteListView] widget.
@@ -28,6 +51,7 @@ class InfiniteListView<T> extends StatefulWidget {
     this.loadingWidget,
     this.errorWidget,
     this.emptyWidget,
+    this.dividerWidget,
     this.padding,
     this.color,
     this.borderRadius,
@@ -135,15 +159,21 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
                 ),
                 child: Column(
                   children: List.generate(
-                    state is NoMoreItemsState<T>
+                    state is LoadedState<T>
                         ? state.state.items.length
                         : state.state.items.length + 1,
                     (index) {
                       if (index >= state.state.items.length) {
                         return _bottomIndicator(context, state);
                       }
-                      return widget.itemBuilder(
-                          context, state.state.items[index]);
+                      return Column(
+                        children: [
+                          widget.itemBuilder(context, state.state.items[index]),
+                          index + 1 < state.state.items.length
+                              ? widget.dividerWidget ?? const SizedBox.shrink()
+                              : const SizedBox.shrink(),
+                        ],
+                      );
                     },
                   ),
                 ),
