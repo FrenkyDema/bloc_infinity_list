@@ -59,7 +59,14 @@ class _MyAppState extends State<MyApp> {
           value: bloc,
           child: InfiniteListView<ListItem>(
             bloc: bloc,
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+            color: Colors.black12,
+            borderRadius: BorderRadius.circular(10),
+            padding: const EdgeInsets.only(
+              top: 20,
+              bottom: 20 * 3,
+              left: 20,
+              right: 20,
+            ),
             itemBuilder: (context, item) {
               return ListTile(
                 title: Text(item.name),

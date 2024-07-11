@@ -1,3 +1,8 @@
+## 0.0.4
+
+Added customization options
+Refactoring
+
 ## 0.0.3
 
 Change readme

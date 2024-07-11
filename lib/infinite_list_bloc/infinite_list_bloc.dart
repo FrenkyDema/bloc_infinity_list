@@ -20,7 +20,7 @@ abstract class InfiniteListBloc<T>
       debugPrint("\n LoadItemsEvent...");
 
       try {
-        emit(LoadingState(state.state));
+        emit(InitialState());
         final List<T> items = await fetchItems(limit: limit, offset: 0);
         debugPrint("Items fetched: ${items.length}");
         emit(LoadedState(state.state.copyWith(items: items)));

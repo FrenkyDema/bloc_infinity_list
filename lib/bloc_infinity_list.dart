@@ -13,6 +13,12 @@ class InfiniteListView<T> extends StatefulWidget {
   final Widget Function(BuildContext context, String error)? errorWidget;
   final Widget Function(BuildContext context)? emptyWidget;
   final EdgeInsetsGeometry? padding;
+  final Color? color;
+
+  final BorderRadiusGeometry? borderRadius;
+  final Color borderColor;
+  final double borderWidth;
+  final List<BoxShadow>? boxShadow;
 
   /// Constructs an [InfiniteListView] widget.
   const InfiniteListView({
@@ -23,6 +29,11 @@ class InfiniteListView<T> extends StatefulWidget {
     this.errorWidget,
     this.emptyWidget,
     this.padding,
+    this.color,
+    this.borderRadius,
+    this.borderColor = Colors.transparent,
+    this.borderWidth = 1,
+    this.boxShadow,
   });
 
   @override
@@ -78,9 +89,6 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
       _isLoadingMore = true;
     });
     widget.bloc.add(LoadMoreItemsEvent());
-    widget.bloc.stream
-        .firstWhere((event) => event is! LoadingState)
-        .then((_) {});
   }
 
   @override
@@ -94,7 +102,7 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
           return _errorWidget(context, state.error);
         } else if (state is LoadedState<T> ||
             state is NoMoreItemsState<T> ||
-            state is LoadingState) {
+            state is LoadingState<T>) {
           if (state.state.items.isEmpty) {
             return _emptyWidget(context);
           }
@@ -107,19 +115,39 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
               await widget.bloc.stream
                   .firstWhere((event) => event is LoadingState);
             },
-            child: ListView.builder(
+            child: SingleChildScrollView(
               controller: _scrollController,
-              padding: widget.padding,
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: state is NoMoreItemsState<T>
-                  ? state.state.items.length
-                  : state.state.items.length + 1,
-              itemBuilder: (context, index) {
-                if (index >= state.state.items.length) {
-                  return _bottomIndicator(context, state);
-                }
-                return widget.itemBuilder(context, state.state.items[index]);
-              },
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(
+                    decelerationRate: ScrollDecelerationRate.fast),
+              ),
+              child: Container(
+                margin: widget.padding ?? EdgeInsets.zero,
+                decoration: BoxDecoration(
+                  color: widget.color,
+                  borderRadius: widget.borderRadius,
+                  shape: BoxShape.rectangle,
+                  border: Border.all(
+                    color: widget.borderColor,
+                    width: widget.borderWidth,
+                  ),
+                  boxShadow: widget.boxShadow,
+                ),
+                child: Column(
+                  children: List.generate(
+                    state is NoMoreItemsState<T>
+                        ? state.state.items.length
+                        : state.state.items.length + 1,
+                    (index) {
+                      if (index >= state.state.items.length) {
+                        return _bottomIndicator(context, state);
+                      }
+                      return widget.itemBuilder(
+                          context, state.state.items[index]);
+                    },
+                  ),
+                ),
+              ),
             ),
           );
         }
