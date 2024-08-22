@@ -21,7 +21,7 @@ class MyCustomBloc extends InfiniteListBloc<ListItem> {
     try {
       await Future.delayed(Durations.long1);
 
-      if (offset >= 100) {
+      if (offset >= 50) {
         return [];
       }
 
@@ -92,6 +92,9 @@ class _MyAppState extends State<MyApp> {
             ),
             emptyWidget: (context) => const Center(
               child: Text('No items available'),
+            ),
+            noMoreItemWidget: (context) => const Center(
+              child: Text('No more items available'),
             ),
           ),
         ),

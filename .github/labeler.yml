@@ -1,6 +1,8 @@
 documentation:
   - .github/*
   - CHANGELOG.md
+  - LICENSE
+  - README.md
 
 test:
   - test/*

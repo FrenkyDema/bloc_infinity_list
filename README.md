@@ -1,10 +1,16 @@
 ## Infinite ListView for Flutter
 
+[![pub package](https://img.shields.io/pub/v/bloc_infinity_list.svg)](https://pub.dev/packages/bloc_infinity_list)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/frenkydema/bloc_infinity_list/flutter.yml)](https://github.com/frenkydema/bloc_infinity_list/actions/workflows/flutter.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 ### Overview
 
 The **Infinite ListView** widget is designed to simplify the creation of paginated lists in your
 Flutter application. This widget integrates seamlessly with the BLoC pattern and allows you to load
 more items as the user scrolls to the bottom of the list.
+
+[](https://github.com/user-attachments/assets/07dd8d58-70c5-4092-a0cf-ca9f7b3f0a14)
 
 ### Features
 
@@ -25,23 +31,52 @@ more items as the user scrolls to the bottom of the list.
 To use the Infinite ListView, you need to provide an instance of your BLoC and an item builder. The
 BLoC should handle loading initial items and fetching more items as needed.
 
+#### Creating a Custom BLoC
+
+Extend the `InfiniteListBloc` class to create your custom BLoC. Override the `fetchItems` method to
+define how items are fetched. Here’s an example of a custom BLoC implementation:
+
+```dart
+import 'package:bloc_infinity_list/bloc_infinity_list.dart';
+
+class MyCustomBloc extends InfiniteListBloc<ListItem> {
+  @override
+  Future<List<ListItem>> fetchItems(
+      {required int limit, required int offset}) async {
+    try {
+      await Future.delayed(Durations.long1);
+
+      if (offset >= 50) {
+        return [];
+      }
+
+      return List.generate(
+          limit, (index) => ListItem(name: 'Item ${offset + index + 1}'));
+    } on Exception {
+      rethrow;
+    }
+  }
+}
+```
+
+#### Example Usage
+
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'infinite_list_bloc/infinite_list_bloc.dart';
-import 'infinite_list_view.dart';
+import 'package:bloc_infinity_list/bloc_infinity_list.dart';
 
 class MyListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final InfiniteListBloc<MyItem> bloc = InfiniteListBloc();
+    final MyCustomBloc bloc = MyCustomBloc();
 
     return Scaffold(
       appBar: AppBar(title: Text('Infinite ListView Example')),
-      body: InfiniteListView<MyItem>(
+      body: InfiniteListView<ListItem>(
         bloc: bloc,
         itemBuilder: (context, item) => ListTile(title: Text(item.name)),
-        dividerWidget: Divider(), // Custom divider between items
+        dividerWidget: Divider(),
         loadingWidget: (context) => Center(child: CircularProgressIndicator()),
         errorWidget: (context, error) => Center(child: Text('Error: $error')),
         emptyWidget: (context) => Center(child: Text('No items available')),
@@ -55,3 +90,7 @@ class MyListPage extends StatelessWidget {
     );
   }
 }
+```
+
+
+

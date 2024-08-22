@@ -22,6 +22,9 @@ class InfiniteListView<T> extends StatefulWidget {
   /// A widget to display when there are no items in the list.
   final Widget Function(BuildContext context)? emptyWidget;
 
+  /// A widget to display when there are no more items in the list.
+  final Widget Function(BuildContext context)? noMoreItemWidget;
+
   /// A widget to display between the items in the list.
   final Widget? dividerWidget;
 
@@ -51,6 +54,7 @@ class InfiniteListView<T> extends StatefulWidget {
     this.loadingWidget,
     this.errorWidget,
     this.emptyWidget,
+    this.noMoreItemWidget,
     this.dividerWidget,
     this.padding,
     this.color,
@@ -191,10 +195,20 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
       BuildContext context, BaseInfiniteListState<T> state) {
     return switch (state) {
       LoadingState() => _loadingWidget(context),
-      NoMoreItemsState<T>() => _emptyWidget(context),
+      NoMoreItemsState<T>() => _noMoreItemWidget(context),
       _ => const SizedBox(),
     };
   }
+
+  /// Builds the widget for when there are no more items in the list.
+  Widget _noMoreItemWidget(BuildContext context) =>
+      widget.noMoreItemWidget?.call(context) ??
+      Center(
+        child: Text(
+          'No more items',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+      );
 
   /// Builds the widget for an empty list.
   Widget _emptyWidget(BuildContext context) =>
