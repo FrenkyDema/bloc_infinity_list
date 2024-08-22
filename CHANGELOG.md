@@ -1,8 +1,12 @@
+## 0.0.6
+
+Custom no more item widget
+Documentation refactoring
+
 ## 0.0.5
 
 Documentation refactoring
 Custom divider
-
 
 ## 0.0.4
 
