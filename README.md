@@ -10,6 +10,8 @@ The **Infinite ListView** widget is designed to simplify the creation of paginat
 Flutter application. This widget integrates seamlessly with the BLoC pattern and allows you to load
 more items as the user scrolls to the bottom of the list.
 
+[](https://github.com/user-attachments/assets/07dd8d58-70c5-4092-a0cf-ca9f7b3f0a14)
+
 ### Features
 
 - **Automatic Pagination**: Load more items automatically when the user reaches the bottom of the
@@ -89,3 +91,6 @@ class MyListPage extends StatelessWidget {
   }
 }
 ```
+
+
+
