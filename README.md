@@ -1,6 +1,3 @@
-I apologize for the oversight. Here’s the updated README with the badges at the start:
-
-```md
 ## Infinite ListView for Flutter
 
 [![pub package](https://img.shields.io/pub/v/bloc_infinity_list.svg)](https://pub.dev/packages/bloc_infinity_list)
