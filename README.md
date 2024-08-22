@@ -68,14 +68,10 @@ Add the following to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  bloc_infinity_list: ^1.0.0
+  bloc_infinity_list: ^0.0.6
 ```
 
 Then run `flutter pub get` to install the package.
-
-## Contributing
-
-Contributions are welcome! Please see our [contributing guidelines](CONTRIBUTING.md) for more details.
 
 ## License
 
@@ -83,5 +79,5 @@ Contributions are welcome! Please see our [contributing guidelines](CONTRIBUTING
 
 ## Contact
 
-For questions or feedback, please reach out via [GitHub Issues](https://github.com/frenkydema/bloc_infinity_list/issues) or email us at [your.email@example.com](mailto:your.email@example.com).
+For questions or feedback, please reach out via [GitHub Issues](https://github.com/FrenkyDema/bloc_infinity_list/issues/new/choose).
 ```
