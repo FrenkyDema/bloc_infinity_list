@@ -80,4 +80,3 @@ Then run `flutter pub get` to install the package.
 ## Contact
 
 For questions or feedback, please reach out via [GitHub Issues](https://github.com/FrenkyDema/bloc_infinity_list/issues/new/choose).
-```
