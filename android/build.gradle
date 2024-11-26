@@ -1,4 +1,4 @@
-group = "francescodema.dev.bloc_infinity_list"
+group = "com.ristocloudgroup.lib.bloc_infinity_list"
 version = "1.0"
 
 buildscript {
@@ -8,7 +8,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:7.3.0")
+        classpath("com.android.tools.build:gradle:8.1.0")
     }
 }
 
@@ -23,7 +23,7 @@ apply plugin: "com.android.library"
 
 android {
     if (project.android.hasProperty("namespace")) {
-        namespace = "francescodema.dev.bloc_infinity_list"
+        namespace = "com.ristocloudgroup.lib.bloc_infinity_list"
     }
 
     compileSdk = 34

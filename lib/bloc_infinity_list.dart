@@ -1,11 +1,24 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'infinite_list_bloc/infinite_list_bloc.dart';
 
-/// A widget that displays a scrollable list of items using a [InfiniteListBloc].
+/// A widget that displays a scrollable list of items using an [InfiniteListBloc].
+///
+/// The [InfiniteListView] handles pagination and infinite scrolling by listening
+/// to the scroll position and dispatching events to load more items when needed.
+///
+/// Example usage:
+/// ```dart
+/// InfiniteListView<MyItem>(
+///   bloc: myInfiniteListBloc,
+///   itemBuilder: (context, item) => ListTile(title: Text(item.title)),
+///   loadingWidget: (context) => CircularProgressIndicator(),
+///   errorWidget: (context, error) => Text('Error: $error'),
+///   emptyWidget: (context) => Text('No items found'),
+///   noMoreItemWidget: (context) => Text('No more items'),
+/// );
+/// ```
 class InfiniteListView<T> extends StatefulWidget {
   /// The BLoC responsible for fetching and managing the list items.
   final InfiniteListBloc<T> bloc;
@@ -32,7 +45,7 @@ class InfiniteListView<T> extends StatefulWidget {
   final EdgeInsetsGeometry? padding;
 
   /// The background color of the list view.
-  final Color? color;
+  final Color? backgroundColor;
 
   /// The border radius of the list view.
   final BorderRadiusGeometry? borderRadius;
@@ -46,7 +59,10 @@ class InfiniteListView<T> extends StatefulWidget {
   /// The box shadow for the list view.
   final List<BoxShadow>? boxShadow;
 
-  /// Constructs an [InfiniteListView] widget.
+  /// The physics for the scroll view.
+  final ScrollPhysics? physics;
+
+  /// Creates an [InfiniteListView] widget.
   const InfiniteListView({
     super.key,
     required this.bloc,
@@ -57,11 +73,12 @@ class InfiniteListView<T> extends StatefulWidget {
     this.noMoreItemWidget,
     this.dividerWidget,
     this.padding,
-    this.color,
+    this.backgroundColor,
     this.borderRadius,
     this.borderColor = Colors.transparent,
     this.borderWidth = 1,
     this.boxShadow,
+    this.physics,
   });
 
   @override
@@ -69,54 +86,44 @@ class InfiniteListView<T> extends StatefulWidget {
 }
 
 class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
-  final ScrollController _scrollController = ScrollController();
-  bool _isLoadingMore = false;
-  Timer? _debounce;
+  late final ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
+
+    _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
+
+    // Load initial items
     widget.bloc.add(LoadItemsEvent());
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
-    _debounce?.cancel();
     super.dispose();
   }
 
-  /// Handles the scroll events and triggers loading more items if scrolled to the bottom.
+  /// Called whenever the scroll position changes.
   void _onScroll() {
-    if (_debounce?.isActive ?? false) return;
-    if (_isBottom && !_isLoadingMore) {
-      _loadMore();
+    if (_isBottom) {
+      // Trigger loading more items when scrolled to the bottom
+      final currentState = widget.bloc.state;
+      if (currentState is LoadedState<T>) {
+        widget.bloc.add(LoadMoreItemsEvent());
+      }
     }
-    _debounce = Timer(Durations.medium1, () {
-      setState(() {
-        _isLoadingMore = false;
-      });
-    });
   }
 
-  /// Checks if the list view is scrolled to the bottom.
+  /// Checks if the scroll position is at the bottom.
   bool get _isBottom {
     if (!_scrollController.hasClients) return false;
-    final double maxScroll = _scrollController.position.maxScrollExtent;
-    final double currentScroll = _scrollController.offset;
-
-    final BaseInfiniteListState<T> currentState = widget.bloc.state;
-
-    return currentState is LoadedState<T> && currentScroll >= maxScroll;
-  }
-
-  /// Initiates the loading of more items.
-  void _loadMore() {
-    setState(() {
-      _isLoadingMore = true;
-    });
-    widget.bloc.add(LoadMoreItemsEvent());
+    const threshold = 200.0; // Adjust the threshold as needed
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    return (maxScroll - currentScroll) <= threshold;
   }
 
   @override
@@ -127,108 +134,90 @@ class _InfiniteListViewState<T> extends State<InfiniteListView<T>> {
         if (state is InitialState<T>) {
           return _loadingWidget(context);
         } else if (state is ErrorState<T>) {
-          return _errorWidget(context, state.error);
+          return _errorWidget(context, state.error.toString());
         } else if (state is LoadedState<T> ||
             state is NoMoreItemsState<T> ||
             state is LoadingState<T>) {
-          if (state.state.items.isEmpty) {
+          final items = state.state.items;
+          if (items.isEmpty) {
             return _emptyWidget(context);
           }
 
           return RefreshIndicator(
-            color: Theme.of(context).iconTheme.color,
-            backgroundColor: Theme.of(context).cardTheme.color,
             onRefresh: () async {
               widget.bloc.add(LoadItemsEvent());
-              await widget.bloc.stream
-                  .firstWhere((event) => event is LoadingState);
+              // Wait for the bloc to emit a LoadedState or ErrorState
+              await widget.bloc.stream.firstWhere(
+                  (state) => state is LoadedState<T> || state is ErrorState<T>);
             },
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(
-                    decelerationRate: ScrollDecelerationRate.fast),
+            child: Container(
+              padding: widget.padding,
+              decoration: BoxDecoration(
+                color: widget.backgroundColor,
+                borderRadius: widget.borderRadius,
+                border: Border.all(
+                  color: widget.borderColor,
+                  width: widget.borderWidth,
+                ),
+                boxShadow: widget.boxShadow,
               ),
-              child: Container(
-                margin: widget.padding ?? EdgeInsets.zero,
-                decoration: BoxDecoration(
-                  color: widget.color,
-                  borderRadius: widget.borderRadius,
-                  shape: BoxShape.rectangle,
-                  border: Border.all(
-                    color: widget.borderColor,
-                    width: widget.borderWidth,
-                  ),
-                  boxShadow: widget.boxShadow,
-                ),
-                child: Column(
-                  children: List.generate(
-                    state is LoadedState<T>
-                        ? state.state.items.length
-                        : state.state.items.length + 1,
-                    (index) {
-                      if (index >= state.state.items.length) {
-                        return _bottomIndicator(context, state);
-                      }
-                      return Column(
-                        children: [
-                          widget.itemBuilder(context, state.state.items[index]),
-                          index + 1 < state.state.items.length
-                              ? widget.dividerWidget ?? const SizedBox.shrink()
-                              : const SizedBox.shrink(),
-                        ],
-                      );
-                    },
-                  ),
-                ),
+              child: ListView.separated(
+                controller: _scrollController,
+                physics:
+                    widget.physics ?? const AlwaysScrollableScrollPhysics(),
+                itemCount: items.length + 1,
+                // Add one for the bottom indicator
+                separatorBuilder: (context, index) =>
+                    widget.dividerWidget ?? const SizedBox.shrink(),
+                itemBuilder: (context, index) {
+                  if (index < items.length) {
+                    return widget.itemBuilder(context, items[index]);
+                  } else {
+                    // Bottom indicator
+                    return _buildBottomIndicator(state);
+                  }
+                },
               ),
             ),
           );
         }
-        return Container();
+        return const SizedBox.shrink();
       },
     );
   }
 
-  /// Builds the widget for the bottom indicator based on the current state.
-  Widget _bottomIndicator(
-      BuildContext context, BaseInfiniteListState<T> state) {
-    return switch (state) {
-      LoadingState() => _loadingWidget(context),
-      NoMoreItemsState<T>() => _noMoreItemWidget(context),
-      _ => const SizedBox(),
-    };
+  /// Builds the bottom indicator widget based on the current state.
+  Widget _buildBottomIndicator(BaseInfiniteListState<T> state) {
+    if (state is LoadingState<T>) {
+      return _loadingWidget(context);
+    } else if (state is NoMoreItemsState<T>) {
+      return _noMoreItemWidget(context);
+    } else {
+      return const SizedBox.shrink();
+    }
   }
-
-  /// Builds the widget for when there are no more items in the list.
-  Widget _noMoreItemWidget(BuildContext context) =>
-      widget.noMoreItemWidget?.call(context) ??
-      Center(
-        child: Text(
-          'No more items',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-      );
-
-  /// Builds the widget for an empty list.
-  Widget _emptyWidget(BuildContext context) =>
-      widget.emptyWidget?.call(context) ??
-      Center(
-        child: Text(
-          'No items',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-      );
 
   /// Builds the widget for the loading indicator.
   Widget _loadingWidget(BuildContext context) {
     return widget.loadingWidget?.call(context) ??
-        const Center(child: CircularProgressIndicator.adaptive());
+        const Center(child: CircularProgressIndicator());
   }
 
   /// Builds the widget for displaying an error.
-  Widget _errorWidget(BuildContext context, Exception error) {
-    return widget.errorWidget?.call(context, error.toString()) ??
-        Center(child: Text(error.toString()));
+  Widget _errorWidget(BuildContext context, String error) {
+    return widget.errorWidget?.call(context, error) ??
+        Center(child: Text('Error: $error'));
+  }
+
+  /// Builds the widget for an empty list.
+  Widget _emptyWidget(BuildContext context) {
+    return widget.emptyWidget?.call(context) ??
+        const Center(child: Text('No items'));
+  }
+
+  /// Builds the widget for when there are no more items in the list.
+  Widget _noMoreItemWidget(BuildContext context) {
+    return widget.noMoreItemWidget?.call(context) ??
+        const Center(child: Text('No more items'));
   }
 }

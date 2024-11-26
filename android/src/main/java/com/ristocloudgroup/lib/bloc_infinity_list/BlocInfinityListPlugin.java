@@ -1,4 +1,4 @@
-package francescodema.dev.bloc_infinity_list;
+package com.ristocloudgroup.lib.bloc_infinity_list;
 
 import androidx.annotation.NonNull;
 
