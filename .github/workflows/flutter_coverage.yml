@@ -1,0 +1,79 @@
+name: Flutter Coverage
+
+on: [ push, pull_request, release ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ensure all branches are fetched
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{env.FLUTTER_VERSION}}
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Generate coverage report
+        run: |
+          sudo apt-get install -y lcov
+          genhtml -o coverage coverage/lcov.info
+
+      - name: Debug Coverage Directory
+        run: |
+          echo "Listing contents of coverage directory..."
+          ls -la coverage/
+          echo "Checking if coverage files exist..."
+          test -f coverage/lcov.info && echo "lcov.info exists" || echo "lcov.info does not exist"
+
+      - name: Configure Git User
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+      - name: Discard pubspec.lock Files
+        run: |
+          git restore --staged pubspec.lock example/pubspec.lock
+          git restore pubspec.lock example/pubspec.lock
+
+      - name: Commit Coverage Files on Main Branch
+        run: |
+          git add coverage/
+          git commit -m "Add coverage report"
+
+      - name: Fetch and Pull gh-pages Branch
+        run: |
+          git fetch origin gh-pages
+          git checkout gh-pages
+          git pull origin gh-pages
+
+      - name: Copy Coverage Files to gh-pages Branch
+        run: |
+          git checkout HEAD@{1} -- coverage/  # Check out coverage files from the previous commit (before branch switch)
+          git add coverage/
+          git commit -m "Update coverage report on gh-pages"
+
+      - name: Force Push to gh-pages Branch
+        run: |
+          git push origin gh-pages --force
+
+      - name: Generate Coverage Badge
+        run: |
+          COVERAGE_PERCENT=$(lcov --summary coverage/lcov.info | grep -Po '\d+\.\d+%' | head -1)
+          ENCODED_COVERAGE_PERCENT=$(echo $COVERAGE_PERCENT | sed 's/%/%25/')
+          curl -o coverage/coverage-badge.svg "https://img.shields.io/badge/Coverage-${ENCODED_COVERAGE_PERCENT}-brightgreen.svg"
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./coverage
