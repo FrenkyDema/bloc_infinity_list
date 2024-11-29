@@ -23,6 +23,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION || '3.10.5' }}  # Provide a default version if not set
 
       # 3. Install dependencies
@@ -49,11 +50,16 @@ jobs:
 
       # 7. Upload coverage artifact for deployment
       - name: Upload Coverage Artifact
-        uses: actions/upload-pages-artifact@v1
+        id: deployment
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./coverage  # Path to the coverage directory
 
+
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     needs: test
     runs-on: ubuntu-latest
     permissions:
@@ -63,4 +69,5 @@ jobs:
     steps:
       # 1. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
