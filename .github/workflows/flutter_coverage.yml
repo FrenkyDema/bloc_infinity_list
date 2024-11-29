@@ -43,11 +43,35 @@ jobs:
       # 6. Generate Coverage Badge
       - name: Generate Coverage Badge
         run: |
-          COVERAGE_PERCENT=$(lcov --summary coverage/lcov.info | grep -Po '\d+\.\d+%' | head -1)
-          ENCODED_COVERAGE_PERCENT=$(echo "$COVERAGE_PERCENT" | sed 's/%/%25/')
-          curl -o coverage/coverage-badge.svg "https://img.shields.io/badge/Coverage-${ENCODED_COVERAGE_PERCENT}-brightgreen.svg"
+          COVERAGE_PERCENT=$(lcov --summary coverage/lcov.info | grep -Po '\d+\.\d+%' | head -1 | tr -d '%')
+          curl -o coverage/coverage-badge.svg "https://img.shields.io/badge/Coverage-${COVERAGE_PERCENT}%25-brightgreen.svg"
 
-      # 7. Upload coverage artifact for deployment
+      # 7. Commit Coverage Badge to Repository
+      - name: Commit Coverage Badge
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure Git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create badges directory if it doesn't exist
+          mkdir -p .github/badges
+          
+          # Move the coverage badge to the badges directory
+          mv coverage/coverage-badge.svg .github/badges/coverage-badge.svg
+          
+          # Add the badge to git
+          git add .github/badges/coverage-badge.svg
+          
+          # Commit the badge
+          git commit -m "Update coverage badge [skip ci]" || echo "No changes to commit"
+          
+          # Push the changes
+          git push origin main
+
+      # 8. Upload coverage artifact for deployment (Optional)
       - name: Upload Coverage Artifact
         id: deployment
         uses: actions/upload-pages-artifact@v3
