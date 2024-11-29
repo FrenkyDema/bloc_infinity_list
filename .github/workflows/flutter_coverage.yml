@@ -3,7 +3,6 @@ name: Flutter Coverage
 on:
   push:
     branches: [ main ]
-  pull_request:
   release:
 
 jobs:
