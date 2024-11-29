@@ -86,9 +86,9 @@ doc/api/
 .pub-cache/
 .pub/
 
-# Ensure coverage files are ignored
-coverage/
-coverage/**
+# Ensure coverage files are not ignored
+!coverage/
+!coverage/**
 
 lib/generated_plugin_registrant.dart
 # For library packages, don’t commit the pubspec.lock file.
