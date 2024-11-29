@@ -2,7 +2,7 @@
 
 [![pub package](https://img.shields.io/pub/v/bloc_infinity_list.svg)](https://pub.dev/packages/bloc_infinity_list)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/ristocloud-group/app-lib-bloc-infinity-list/flutter.yml)](https://github.com/ristocloud-group/app-lib-bloc-infinity-list/actions/workflows/flutter.yml)
-[![Coverage Status](https://github.com/ristocloud-group/app-lib-bloc-infinity-list/raw/gh-pages/coverage-badge.svg)](https://ristocloud-group.github.io/app-lib-bloc-infinity-list/)
+[![Coverage Status](.github/badges/coverage-badge.svg)](https://ristocloud-group.github.io/app-lib-bloc-infinity-list/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
