@@ -86,9 +86,9 @@ doc/api/
 .pub-cache/
 .pub/
 
-# Ensure coverage files are not ignored
-!coverage/
-!coverage/**
+# Ensure coverage files are ignored
+coverage/
+coverage/**
 
 lib/generated_plugin_registrant.dart
 # For library packages, don’t commit the pubspec.lock file.
@@ -271,5 +271,4 @@ example/macos/Flutter/ephemeral/Flutter-Generated.xcconfig
 example/macos/Flutter/ephemeral/flutter_export_environment.sh
 example/windows/flutter/ephemeral/.plugin_symlinks/path_provider_windows
 example/windows/flutter/ephemeral/.plugin_symlinks/risto_widgets
-auto_git
 *.wiki
