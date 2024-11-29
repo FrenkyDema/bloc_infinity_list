@@ -11,6 +11,10 @@ jobs:
     env:
       JAVA_VERSION: "11.0"
       FLUTTER_VERSION: "3.24.5"
+    permissions:
+      contents: write        # Grants write access to repository contents
+      actions: read
+      id-token: write
     steps:
       # 1. Checkout the repository
       - name: Checkout Code
