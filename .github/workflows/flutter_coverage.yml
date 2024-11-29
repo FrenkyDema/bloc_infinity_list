@@ -1,0 +1,72 @@
+name: Flutter Coverage
+
+on:
+  push:
+    branches: [ main ]
+  release:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: "11.0"
+      FLUTTER_VERSION: "3.24.5"
+    steps:
+      # 1. Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ensures all history is fetched
+
+      # 2. Set up Flutter
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION || '3.10.5' }}  # Provide a default version if not set
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 4. Run tests with coverage
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      # 5. Generate coverage report
+      - name: Generate coverage report
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lcov
+          genhtml -o coverage coverage/lcov.info
+
+      # 6. Generate Coverage Badge
+      - name: Generate Coverage Badge
+        run: |
+          COVERAGE_PERCENT=$(lcov --summary coverage/lcov.info | grep -Po '\d+\.\d+%' | head -1)
+          ENCODED_COVERAGE_PERCENT=$(echo "$COVERAGE_PERCENT" | sed 's/%/%25/')
+          curl -o coverage/coverage-badge.svg "https://img.shields.io/badge/Coverage-${ENCODED_COVERAGE_PERCENT}-brightgreen.svg"
+
+      # 7. Upload coverage artifact for deployment
+      - name: Upload Coverage Artifact
+        id: deployment
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./coverage  # Path to the coverage directory
+
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write       # Grants permission to deploy to GitHub Pages
+      id-token: write    # Required for authentication
+
+    steps:
+      # 1. Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
