@@ -24,6 +24,8 @@ class ListItem {
 
 /// A custom BLoC that extends [InfiniteListBloc] to fetch [ListItem]s.
 class MyCustomBloc extends InfiniteListBloc<ListItem> {
+  MyCustomBloc({super.initialItems});
+
   @override
   Future<List<ListItem>> fetchItems({
     required int limit,
@@ -136,6 +138,11 @@ class MyCustomBlocLimited extends MyCustomBloc {
   }
 }
 
+/// Bloc that accepts initial items to simulate preloaded data.
+class MyCustomBlocWithInitialItems extends MyCustomBloc {
+  MyCustomBlocWithInitialItems({super.initialItems});
+}
+
 void main() {
   group('InfiniteListView Tests', () {
     testWidgets('Automatic Infinite List loads more items on scroll',
@@ -174,7 +181,7 @@ void main() {
         find.byType(ListView),
         const Offset(0, -500),
       );
-      // // Allow time for the loading indicator to appear
+      // Allow time for the loading indicator to appear
       await tester.pump(const Duration(milliseconds: 70));
 
       // Loading indicator should appear
@@ -220,7 +227,6 @@ void main() {
                   if (state.state.items.isNotEmpty) {
                     return ElevatedButton(
                       key: const Key('loadMoreButton'),
-                      // Assign a unique key
                       onPressed: isLoadingMore
                           ? null
                           : () {
@@ -294,7 +300,6 @@ void main() {
                   if (state.state.items.isNotEmpty) {
                     return ElevatedButton(
                       key: const Key('loadMoreButton'),
-                      // Assign a unique key
                       onPressed: isLoadingMore
                           ? null
                           : () {
@@ -673,5 +678,135 @@ void main() {
       // Verify that the list did not scroll (Item 1 is still visible)
       expect(find.text('Item 1'), findsOneWidget);
     });
+
+    testWidgets(
+      'Infinite List displays initial items correctly when initialized with initial items',
+      (WidgetTester tester) async {
+        // Define 5 initial items
+        final initialItems = List.generate(
+          5,
+          (index) => ListItem(
+            name: 'Initial Item ${index + 1}',
+            description: 'Description for initial item ${index + 1}',
+          ),
+        );
+
+        // Initialize the Test BLoC with initial items
+        final bloc = MyCustomBlocWithInitialItems(initialItems: initialItems);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: BlocProvider<MyCustomBlocWithInitialItems>(
+                create: (_) => bloc,
+                child: InfiniteListView<ListItem>.manual(
+                  bloc: bloc,
+                  itemBuilder: (context, item) {
+                    return ListTile(
+                      key: ValueKey(item.id),
+                      title: Text(item.name),
+                      subtitle: Text(item.description),
+                    );
+                  },
+                  loadMoreButtonBuilder: (context) {
+                    final state = bloc.state;
+                    final isLoading = state is LoadingState<ListItem>;
+
+                    return Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: ElevatedButton(
+                        key: const Key('loadMoreButton'),
+                        // Assigning a unique key here
+                        onPressed: isLoading
+                            ? null
+                            : () {
+                                bloc.add(LoadMoreItemsEvent());
+                              },
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                          backgroundColor: Colors.deepPurple,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                  strokeWidth: 2.0,
+                                ),
+                              )
+                            : const Text(
+                                'Load More',
+                                style: TextStyle(
+                                    fontSize: 18, color: Colors.white),
+                              ),
+                      ),
+                    );
+                  },
+                  loadingWidget: (context) => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  errorWidget: (context, error) => Center(
+                    child: Text('Error: $error'),
+                  ),
+                  emptyWidget: (context) => const Center(
+                    child: Text('No items available'),
+                  ),
+                  noMoreItemWidget: (context) => const Center(
+                    child: Text('No more items'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // Allow the initial items to be rendered
+        await tester.pumpAndSettle();
+
+        // Verify that the initial 5 items are displayed
+        for (int i = 1; i <= 5; i++) {
+          expect(find.text('Initial Item $i'), findsOneWidget);
+          expect(find.text('Description for initial item $i'), findsOneWidget);
+        }
+
+        // Verify that no loading indicator is present initially
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+
+        // Find and tap the "Load More" button
+        final loadMoreButton = find.byKey(const Key('loadMoreButton'));
+        expect(loadMoreButton, findsOneWidget);
+
+        await tester.tap(loadMoreButton);
+        await tester.pump(); // Start the tap event
+
+        // Allow the BLoC to process the LoadMoreItemsEvent and emit LoadingState
+        await tester.pump(); // This pump allows the BLoC to emit LoadingState
+
+        // Verify that the loading indicator appears within the "Load More" button
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+        // Wait for the fetchItems to complete (100ms as defined in BLoC)
+        await tester.pump(const Duration(milliseconds: 100));
+
+        // Allow all animations and state transitions to settle
+        await tester.pumpAndSettle();
+
+        // Verify that additional items are loaded
+        expect(find.text('Item 6'), findsOneWidget);
+        await tester.scrollUntilVisible(find.text("Item 10"), 100);
+        expect(find.text('Item 10'), findsOneWidget);
+
+        // Verify that initial items are still present
+        await tester.scrollUntilVisible(find.text("Initial Item 1"), -100);
+        for (int i = 1; i <= 5; i++) {
+          expect(find.text('Initial Item $i'), findsOneWidget);
+        }
+
+        // Verify that no loading indicator is present after loading more items
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+      },
+    );
   });
 }

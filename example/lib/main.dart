@@ -14,10 +14,18 @@ class ListItem {
   final String description;
 
   ListItem({required this.name, required this.description}) : id = ++_staticId;
+
+  /// Resets the static ID counter. Useful for testing.
+  static void resetIdCounter() {
+    _staticId = 0;
+  }
 }
 
 /// A custom BLoC that extends [InfiniteListBloc] to fetch [ListItem]s.
 class MyCustomBloc extends InfiniteListBloc<ListItem> {
+  /// Constructor accepts an optional list of initial items.
+  MyCustomBloc({super.initialItems});
+
   @override
   Future<List<ListItem>> fetchItems({
     required int limit,
@@ -67,7 +75,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// The home page that contains navigation to the two examples.
+/// The home page that contains navigation to the three examples.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -82,6 +90,7 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _pages = [
     const AutomaticInfiniteListPage(),
     const ManualInfiniteListPage(),
+    const ManualInfiniteListPageWithInitialItems(),
   ];
 
   @override
@@ -102,6 +111,10 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.touch_app),
             label: 'Manual',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list_alt),
+            label: 'Default Manual',
           ),
         ],
         onTap: (index) {
@@ -275,6 +288,7 @@ class _ManualInfiniteListPageState extends State<ManualInfiniteListPage> {
   @override
   void initState() {
     super.initState();
+    // Initialize the bloc without initial items
     _bloc = MyCustomBloc();
   }
 
@@ -371,6 +385,7 @@ class _ManualInfiniteListPageState extends State<ManualInfiniteListPage> {
                 height: 24,
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 2.0,
                 ),
               )
             : const Text(
@@ -432,6 +447,204 @@ class _ManualInfiniteListPageState extends State<ManualInfiniteListPage> {
   Widget _buildNoMoreItemWidget(BuildContext context) => Center(
         child: Text(
           'You have reached the end!',
+          style: TextStyle(
+            color: Colors.grey.shade600,
+            fontSize: 16,
+          ),
+        ),
+      );
+}
+
+/// A second manual infinite list page demonstrating another manual list with 5 initial items.
+class ManualInfiniteListPageWithInitialItems extends StatefulWidget {
+  const ManualInfiniteListPageWithInitialItems({super.key});
+
+  @override
+  State<ManualInfiniteListPageWithInitialItems> createState() =>
+      _ManualInfiniteListPageWithInitialItemsState();
+}
+
+class _ManualInfiniteListPageWithInitialItemsState
+    extends State<ManualInfiniteListPageWithInitialItems> {
+  late final MyCustomBloc _bloc;
+
+  @override
+  void initState() {
+    super.initState();
+    // Define 5 initial items
+    final initialItems = List.generate(
+      5,
+      (index) => ListItem(
+        name: 'Secondary Preloaded Item ${index + 1}',
+        description: 'Description for secondary preloaded item ${index + 1}',
+      ),
+    );
+    // Initialize the bloc with initial items
+    _bloc = MyCustomBloc(initialItems: initialItems);
+
+    // Optionally, if you want to fetch more items beyond initial items
+    // _bloc.add(LoadItemsEvent());
+    debugPrint(_bloc.state.state.items
+        .map(
+          (e) => e.name,
+        )
+        .toString());
+  }
+
+  @override
+  void dispose() {
+    _bloc.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider<MyCustomBloc>(
+      create: (_) => _bloc,
+      child: InfiniteListView<ListItem>.manual(
+        bloc: _bloc,
+        backgroundColor: Colors.white,
+        padding: const EdgeInsets.all(16.0),
+        borderRadius: BorderRadius.circular(12.0),
+        borderColor: Colors.grey.shade300,
+        borderWidth: 1.0,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 6.0,
+            spreadRadius: 2.0,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        physics: const BouncingScrollPhysics(),
+        itemBuilder: _buildListItem,
+        loadMoreButtonBuilder: _buildLoadMoreButton,
+        dividerWidget: const SizedBox(height: 0),
+        loadingWidget: _buildLoadingWidget,
+        errorWidget: _buildErrorWidget,
+        emptyWidget: _buildEmptyWidget,
+        noMoreItemWidget: _buildNoMoreItemWidget,
+      ),
+    );
+  }
+
+  Widget _buildListItem(BuildContext context, ListItem item) {
+    return Card(
+      elevation: 2.0,
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.deepPurple,
+          child: Text(
+            item.id.toString(),
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+        title: Text(
+          item.name,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        subtitle: Text(
+          item.description,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios),
+        onTap: () {
+          // Handle item tap
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Tapped on ${item.name}')),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildLoadMoreButton(BuildContext context) {
+    final state = _bloc.state;
+    final isLoading = state is LoadingState<ListItem>;
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: ElevatedButton(
+        onPressed: isLoading
+            ? null
+            : () {
+                _bloc.add(LoadMoreItemsEvent());
+              },
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size(double.infinity, 50),
+          backgroundColor: Colors.deepPurple,
+        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 2.0,
+                ),
+              )
+            : const Text(
+                'Load More',
+                style: TextStyle(fontSize: 18, color: Colors.white),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingWidget(BuildContext context) => const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+          ),
+        ),
+      );
+
+  Widget _buildErrorWidget(BuildContext context, String error) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
+            const SizedBox(height: 8),
+            Text(
+              'Something went wrong!',
+              style: TextStyle(
+                color: Colors.red.shade300,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () {
+                _bloc.add(LoadItemsEvent());
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildEmptyWidget(BuildContext context) => Center(
+        child: Text(
+          'No items available',
+          style: TextStyle(
+            color: Colors.grey.shade600,
+            fontSize: 18,
+          ),
+        ),
+      );
+
+  Widget _buildNoMoreItemWidget(BuildContext context) => Center(
+        child: Text(
+          'No more items',
           style: TextStyle(
             color: Colors.grey.shade600,
             fontSize: 16,

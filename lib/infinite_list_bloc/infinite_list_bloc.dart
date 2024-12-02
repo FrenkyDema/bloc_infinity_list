@@ -12,46 +12,82 @@ part 'infinite_list_state.dart';
 abstract class InfiniteListBloc<T>
     extends Bloc<InfiniteListEvent, BaseInfiniteListState<T>> {
   /// Default limit for fetching items in a single request.
-  static const int limit = 10;
+  static const int defaultLimit = 10;
 
-  /// Initializes the InfiniteListBloc with an initial state of [InitialState].
-  InfiniteListBloc() : super(InitialState<T>()) {
-    on<LoadItemsEvent>((event, emit) async {
-      debugPrint("\n LoadItemsEvent...");
+  /// A list of initial items to preload, if any.
+  final List<T>? initialItems;
 
-      try {
-        emit(InitialState());
-        final List<T> items = await fetchItems(limit: limit, offset: 0);
+  /// Initializes the InfiniteListBloc with an initial state.
+  ///
+  /// Optionally accepts [initialItems] to set up the initial state.
+  InfiniteListBloc({
+    this.initialItems,
+  }) : super(
+          initialItems != null && initialItems.isNotEmpty
+              ? LoadedState<T>(
+                  InfiniteListState<T>(
+                    items: initialItems,
+                  ),
+                )
+              : InitialState<T>(),
+        ) {
+    on<LoadItemsEvent>(_onLoadItems);
+    on<LoadMoreItemsEvent>(_onLoadMoreItems);
+  }
+
+  /// Handler for [LoadItemsEvent].
+  Future<void> _onLoadItems(
+      LoadItemsEvent event, Emitter<BaseInfiniteListState<T>> emit) async {
+    debugPrint("\nLoadItemsEvent...");
+
+    try {
+      // If initial items are provided, emit them directly.
+      if (initialItems != null && initialItems!.isNotEmpty) {
+        debugPrint("Initial items are provided. Emitting initial items.");
+        emit(LoadedState<T>(InfiniteListState<T>(items: initialItems!)));
+      }
+      // Otherwise, fetch items from the data source.
+      else {
+        emit(InitialState<T>());
+        final List<T> items = await fetchItems(limit: defaultLimit, offset: 0);
         debugPrint("Items fetched: ${items.length}");
-        emit(LoadedState(state.state.copyWith(items: items)));
-      } catch (e) {
-        debugPrint("Error fetching items: $e");
-        emit(ErrorState(state.state, error: e as Exception));
+        emit(LoadedState<T>(InfiniteListState<T>(items: items)));
       }
-      debugPrint("LoadItemsEvent!\n");
-    });
+    } catch (e) {
+      debugPrint("Error fetching items: $e");
+      emit(ErrorState<T>(
+        state.state,
+        error: e is Exception ? e : Exception(e.toString()),
+      ));
+    }
+    debugPrint("LoadItemsEvent!\n");
+  }
 
-    on<LoadMoreItemsEvent>((event, emit) async {
-      debugPrint("\n LoadMoreItemsEvent...");
+  /// Handler for [LoadMoreItemsEvent].
+  Future<void> _onLoadMoreItems(
+      LoadMoreItemsEvent event, Emitter<BaseInfiniteListState<T>> emit) async {
+    debugPrint("\nLoadMoreItemsEvent...");
 
-      try {
-        emit(LoadingState(state.state));
-        final List<T> items = await fetchItems(
-          limit: event.limit ?? limit,
-          offset: event.offset ?? state.state.items.length,
-        );
-        debugPrint("More items fetched: ${items.length}");
-        if (items.isEmpty) {
-          emit(NoMoreItemsState(state.state));
-        } else {
-          emit(LoadedState(state.state.moreItems(newItems: items)));
-        }
-      } catch (e) {
-        debugPrint("Error fetching more items: $e");
-        emit(ErrorState(state.state, error: e as Exception));
+    try {
+      emit(LoadingState<T>(state.state));
+      final List<T> items = await fetchItems(
+        limit: event.limit ?? defaultLimit,
+        offset: state.state.items.length,
+      );
+      debugPrint("More items fetched: ${items.length}");
+      if (items.isEmpty) {
+        emit(NoMoreItemsState<T>(state.state));
+      } else {
+        emit(LoadedState<T>(state.state.moreItems(newItems: items)));
       }
-      debugPrint("LoadMoreItemsEvent!\n");
-    });
+    } catch (e) {
+      debugPrint("Error fetching more items: $e");
+      emit(ErrorState<T>(
+        state.state,
+        error: e is Exception ? e : Exception(e.toString()),
+      ));
+    }
+    debugPrint("LoadMoreItemsEvent!\n");
   }
 
   /// Abstract method to be implemented by subclasses to fetch items from an external source.
