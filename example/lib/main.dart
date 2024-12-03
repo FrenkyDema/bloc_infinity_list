@@ -323,7 +323,12 @@ class _ManualInfiniteListPageState extends State<ManualInfiniteListPage> {
         physics: const BouncingScrollPhysics(),
         itemBuilder: _buildListItem,
         loadMoreButtonBuilder: _buildLoadMoreButton,
-        dividerWidget: const SizedBox(height: 0),
+        dividerWidget: const Divider(
+          height: 2,
+          thickness: 1,
+          indent: 20,
+        ),
+        showLastDivider: () => _bloc.state is! NoMoreItemsState,
         loadingWidget: _buildLoadingWidget,
         errorWidget: _buildErrorWidget,
         emptyWidget: _buildEmptyWidget,
