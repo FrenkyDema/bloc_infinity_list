@@ -1,3 +1,5 @@
+// infinite_list_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -16,17 +18,59 @@ import 'infinite_list_bloc/infinite_list_bloc.dart';
 /// The [InfiniteListView] uses an [InfiniteListBloc] to manage the state and
 /// loading of items.
 ///
-/// Example usage:
+/// ## Parameters
+/// - [shrinkWrap]: Determines whether the extent of the scroll view in the
+///   scrollDirection should be determined by the contents being viewed.
+///   - **`true`**: The scroll view will size itself to the height of its
+///     children. Useful when embedding the list within another scrollable widget.
+///   - **`false`**: The scroll view will occupy all available space in the
+///     scrollDirection. Suitable for standalone scrollable lists.
+/// - [physics]: Determines the physics for the scroll view. Controls how the
+///   scroll view behaves when user input is received.
+///   - **`NeverScrollableScrollPhysics`**: Disables scrolling for the list.
+///     Useful when the list is embedded within another scrollable widget.
+///   - **`AlwaysScrollableScrollPhysics`** or other scroll physics: Enables
+///     scrolling as per the specified behavior.
 ///
+/// ## Usage Examples
+///
+/// ### Standalone Scrollable List
 /// ```dart
 /// InfiniteListView<MyItem>.automatic(
 ///   bloc: myInfiniteListBloc,
+///   shrinkWrap: false, // Occupies all available space
+///   physics: AlwaysScrollableScrollPhysics(), // Enables scrolling
 ///   itemBuilder: (context, item) => ListTile(title: Text(item.title)),
+/// );
+/// ```
+///
+/// ### Embedded within a SingleChildScrollView
+/// ```dart
+/// SingleChildScrollView(
+///   child: Column(
+///     children: [
+///       // Other widgets
+///       InfiniteListView<MyItem>.manual(
+///         bloc: myInfiniteListBloc,
+///         shrinkWrap: true, // Sizes to content
+///         physics: NeverScrollableScrollPhysics(), // Delegates scrolling
+///         itemBuilder: (context, item) => ListTile(title: Text(item.title)),
+///         loadMoreButtonBuilder: (context) => ElevatedButton(
+///           onPressed: () => myInfiniteListBloc.add(LoadMoreItemsEvent()),
+///           child: Text('Load More'),
+///         ),
+///       ),
+///       // Other widgets
+///     ],
+///   ),
 /// );
 /// ```
 abstract class InfiniteListView<T> extends StatefulWidget {
   /// The BLoC responsible for fetching and managing the list items.
   final InfiniteListBloc<T> bloc;
+
+  /// Determines whether the scroll view should shrink to fit its content.
+  final bool shrinkWrap;
 
   /// A function that builds the widget for each item in the list.
   final Widget Function(BuildContext context, T item) itemBuilder;
@@ -71,6 +115,7 @@ abstract class InfiniteListView<T> extends StatefulWidget {
   const InfiniteListView({
     super.key,
     required this.bloc,
+    required this.shrinkWrap,
     required this.itemBuilder,
     this.loadingWidget,
     this.errorWidget,
@@ -134,6 +179,7 @@ abstract class InfiniteListView<T> extends StatefulWidget {
   factory InfiniteListView.manual({
     Key? key,
     required InfiniteListBloc<T> bloc,
+    bool shrinkWrap = false,
     required Widget Function(BuildContext context, T item) itemBuilder,
     Widget Function(BuildContext context)? loadMoreButtonBuilder,
     // Optional parameters
@@ -153,6 +199,7 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     return _ManualInfiniteListView<T>(
       key: key,
       bloc: bloc,
+      shrinkWrap: shrinkWrap,
       itemBuilder: itemBuilder,
       loadMoreButtonBuilder: loadMoreButtonBuilder,
       loadingWidget: loadingWidget,
@@ -179,6 +226,7 @@ class _AutomaticInfiniteListView<T> extends InfiniteListView<T> {
     super.key,
     required super.bloc,
     required super.itemBuilder,
+    super.shrinkWrap = false, // Typically false for standalone lists
     // Optional parameters
     super.loadingWidget,
     super.errorWidget,
@@ -232,10 +280,10 @@ class _AutomaticInfiniteListViewState<T>
     }
   }
 
-  /// Checks if the scroll position is at the bottom.
+  /// Checks if the scroll position is near the bottom.
   bool get _isBottom {
     if (!_scrollController.hasClients) return false;
-    const threshold = 200.0; // Adjust the threshold as needed
+    const threshold = 200.0; // Distance from bottom to trigger load
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
     return (maxScroll - currentScroll) <= threshold;
@@ -280,6 +328,9 @@ class _AutomaticInfiniteListViewState<T>
                 controller: _scrollController,
                 physics:
                     widget.physics ?? const AlwaysScrollableScrollPhysics(),
+                // Default scroll physics
+                shrinkWrap: widget.shrinkWrap,
+                // Typically false for standalone lists
                 itemCount: items.length + 1,
                 // Add one for the bottom indicator
                 separatorBuilder: (context, index) =>
@@ -288,7 +339,7 @@ class _AutomaticInfiniteListViewState<T>
                   if (index < items.length) {
                     return widget.itemBuilder(context, items[index]);
                   } else {
-                    // Bottom indicator
+                    // Bottom indicator based on state
                     return _buildBottomIndicator(state);
                   }
                 },
@@ -347,6 +398,7 @@ class _ManualInfiniteListView<T> extends InfiniteListView<T> {
   const _ManualInfiniteListView({
     super.key,
     required super.bloc,
+    required super.shrinkWrap,
     required super.itemBuilder,
     this.loadMoreButtonBuilder,
     // Optional parameters
@@ -414,8 +466,14 @@ class _ManualInfiniteListViewState<T>
                 boxShadow: widget.boxShadow,
               ),
               child: ListView.separated(
-                physics:
-                    widget.physics ?? const AlwaysScrollableScrollPhysics(),
+                // Respect the shrinkWrap parameter
+                shrinkWrap: widget.shrinkWrap,
+                physics: widget.physics ??
+                    (widget.shrinkWrap
+                        ? const NeverScrollableScrollPhysics()
+                        : const AlwaysScrollableScrollPhysics()),
+                // - If shrinkWrap is true, disable internal scrolling
+                // - If shrinkWrap is false, enable scrolling based on the provided physics
                 itemCount: items.length + 1,
                 separatorBuilder: (context, index) =>
                     widget.dividerWidget ?? const SizedBox.shrink(),
@@ -448,18 +506,29 @@ class _ManualInfiniteListViewState<T>
     return Center(
       child: widget.loadMoreButtonBuilder?.call(context) ??
           ElevatedButton(
+            key: const Key('loadMoreButton'), // Assigning a unique key here
             onPressed: isLoading
                 ? null
                 : () {
                     widget.bloc.add(LoadMoreItemsEvent());
                   },
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 50),
+              backgroundColor: Colors.deepPurple,
+            ),
             child: isLoading
                 ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      strokeWidth: 2.0,
+                    ),
                   )
-                : const Text('Load More'),
+                : const Text(
+                    'Load More',
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
           ),
     );
   }

@@ -1,3 +1,5 @@
+// main.dart
+
 import 'dart:async';
 
 import 'package:bloc_infinity_list/bloc_infinity_list.dart';
@@ -85,7 +87,8 @@ class HomePage extends StatefulWidget {
 
 /// State class for [HomePage].
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  int _selectedIndex =
+      2; // Set ManualInfiniteListPageWithInitialItems as default
 
   final List<Widget> _pages = [
     const AutomaticInfiniteListPage(),
@@ -370,6 +373,7 @@ class _ManualInfiniteListPageState extends State<ManualInfiniteListPage> {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: ElevatedButton(
+        key: const Key('loadMoreButton'), // Assigning a unique key here
         onPressed: isLoading
             ? null
             : () {
@@ -455,7 +459,8 @@ class _ManualInfiniteListPageState extends State<ManualInfiniteListPage> {
       );
 }
 
-/// A second manual infinite list page demonstrating another manual list with 5 initial items.
+/// A second manual infinite list page demonstrating another manual list with initial items.
+/// **This page is updated to dynamically grow in height and can be embedded within another scrollable widget.**
 class ManualInfiniteListPageWithInitialItems extends StatefulWidget {
   const ManualInfiniteListPageWithInitialItems({super.key});
 
@@ -481,14 +486,6 @@ class _ManualInfiniteListPageWithInitialItemsState
     );
     // Initialize the bloc with initial items
     _bloc = MyCustomBloc(initialItems: initialItems);
-
-    // Optionally, if you want to fetch more items beyond initial items
-    // _bloc.add(LoadItemsEvent());
-    debugPrint(_bloc.state.state.items
-        .map(
-          (e) => e.name,
-        )
-        .toString());
   }
 
   @override
@@ -499,31 +496,59 @@ class _ManualInfiniteListPageWithInitialItemsState
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<MyCustomBloc>(
-      create: (_) => _bloc,
-      child: InfiniteListView<ListItem>.manual(
-        bloc: _bloc,
-        backgroundColor: Colors.white,
-        padding: const EdgeInsets.all(16.0),
-        borderRadius: BorderRadius.circular(12.0),
-        borderColor: Colors.grey.shade300,
-        borderWidth: 1.0,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 6.0,
-            spreadRadius: 2.0,
-            offset: const Offset(0, 3),
+    // **Embedding within SingleChildScrollView and Column for dynamic height**
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Other widgets above the InfiniteListView
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Manual Infinite List with Initial Items',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
+          // The updated InfiniteListView.manual with shrinkWrap enabled
+          BlocProvider<MyCustomBloc>(
+            create: (_) => _bloc,
+            child: InfiniteListView<ListItem>.manual(
+              bloc: _bloc,
+              shrinkWrap: true,
+              // Enable shrink wrapping
+              itemBuilder: _buildListItem,
+              loadMoreButtonBuilder: _buildLoadMoreButton,
+              backgroundColor: Colors.white,
+              padding: const EdgeInsets.all(16.0),
+              borderRadius: BorderRadius.circular(12.0),
+              borderColor: Colors.grey.shade300,
+              borderWidth: 1.0,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.shade200,
+                  blurRadius: 6.0,
+                  spreadRadius: 2.0,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+              physics: const NeverScrollableScrollPhysics(),
+              // Disable internal scrolling
+              // The InfiniteListView.manual now respects shrinkWrap and doesn't scroll internally
+              dividerWidget: const SizedBox(height: 0),
+              loadingWidget: _buildLoadingWidget,
+              errorWidget: _buildErrorWidget,
+              emptyWidget: _buildEmptyWidget,
+              noMoreItemWidget: _buildNoMoreItemWidget,
+            ),
+          ),
+          // Other widgets below the InfiniteListView
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Footer Widget',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
           ),
         ],
-        physics: const BouncingScrollPhysics(),
-        itemBuilder: _buildListItem,
-        loadMoreButtonBuilder: _buildLoadMoreButton,
-        dividerWidget: const SizedBox(height: 0),
-        loadingWidget: _buildLoadingWidget,
-        errorWidget: _buildErrorWidget,
-        emptyWidget: _buildEmptyWidget,
-        noMoreItemWidget: _buildNoMoreItemWidget,
       ),
     );
   }
@@ -569,6 +594,7 @@ class _ManualInfiniteListPageWithInitialItemsState
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: ElevatedButton(
+        key: const Key('loadMoreButton'), // Assigning a unique key here
         onPressed: isLoading
             ? null
             : () {
@@ -598,9 +624,7 @@ class _ManualInfiniteListPageWithInitialItemsState
   Widget _buildLoadingWidget(BuildContext context) => const Padding(
         padding: EdgeInsets.all(16.0),
         child: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
-          ),
+          child: CircularProgressIndicator(),
         ),
       );
 

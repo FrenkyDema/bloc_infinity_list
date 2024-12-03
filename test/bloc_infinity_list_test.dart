@@ -809,4 +809,236 @@ void main() {
       },
     );
   });
+
+  testWidgets(
+      'Displays initial items and loads more items on "Load More" button tap',
+      (WidgetTester tester) async {
+    // Reset the static ID counter before the test
+    ListItem.resetIdCounter();
+
+    // Define 5 initial items
+    final initialItems = List.generate(
+      5,
+      (index) => ListItem(
+        name: 'Secondary Preloaded Item ${index + 1}',
+        description: 'Description for secondary preloaded item ${index + 1}',
+      ),
+    );
+
+    // Initialize the BLoC with initial items
+    final bloc = MyCustomBloc(initialItems: initialItems);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: Column(
+              children: [
+                // Header Widget
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Builder(
+                    builder: (context) {
+                      return Text(
+                        'Manual Infinite List with Initial Items',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      );
+                    },
+                  ),
+                ),
+                // InfiniteListView.manual
+                BlocProvider<MyCustomBloc>(
+                  create: (_) => bloc,
+                  child: InfiniteListView<ListItem>.manual(
+                    bloc: bloc,
+                    shrinkWrap: true,
+                    // Enable shrink wrapping
+                    itemBuilder: (context, item) {
+                      return ListTile(
+                        key: ValueKey(item.id),
+                        title: Text(item.name),
+                        subtitle: Text(item.description),
+                      );
+                    },
+                    loadMoreButtonBuilder: (context) {
+                      final state = bloc.state;
+                      final isLoading = state is LoadingState<ListItem>;
+
+                      return Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: ElevatedButton(
+                          key: const Key('loadMoreButton'), // Unique key
+                          onPressed: isLoading
+                              ? null
+                              : () {
+                                  bloc.add(LoadMoreItemsEvent());
+                                },
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            backgroundColor: Colors.deepPurple,
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                    strokeWidth: 2.0,
+                                  ),
+                                )
+                              : const Text(
+                                  'Load More',
+                                  style: TextStyle(
+                                      fontSize: 18, color: Colors.white),
+                                ),
+                        ),
+                      );
+                    },
+                    backgroundColor: Colors.white,
+                    padding: const EdgeInsets.all(16.0),
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderColor: Colors.grey.shade300,
+                    borderWidth: 1.0,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.shade200,
+                        blurRadius: 6.0,
+                        spreadRadius: 2.0,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                    physics: const NeverScrollableScrollPhysics(),
+                    dividerWidget: const SizedBox(height: 0),
+                    loadingWidget: (context) => const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, error) => Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.error_outline,
+                              color: Colors.red.shade300, size: 48),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Something went wrong!',
+                            style: TextStyle(
+                              color: Colors.red.shade300,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              bloc.add(LoadItemsEvent());
+                            },
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepPurple,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    emptyWidget: (context) => Center(
+                      child: Text(
+                        'No items available',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    noMoreItemWidget: (context) => Center(
+                      child: Text(
+                        'No more items',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Footer Widget
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Builder(
+                    builder: (context) {
+                      return Text(
+                        'Footer Widget',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Allow the initial items to be rendered
+    await tester.pumpAndSettle();
+
+    // Verify that the initial 5 items are displayed
+    for (int i = 1; i <= 5; i++) {
+      expect(find.text('Secondary Preloaded Item $i'), findsOneWidget);
+      expect(find.text('Description for secondary preloaded item $i'),
+          findsOneWidget);
+    }
+
+    // Verify that no loading indicator is present initially
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    // Find and tap the "Load More" button
+    final loadMoreButton = find.byKey(const Key('loadMoreButton'));
+    expect(loadMoreButton, findsOneWidget);
+
+    await tester.tap(loadMoreButton);
+    await tester.pump(); // Start the tap event
+
+    // Allow the BLoC to process the LoadMoreItemsEvent and emit LoadingState
+    await tester.pump(); // This pump allows the BLoC to emit LoadingState
+
+    // Verify that the loading indicator appears within the "Load More" button
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('loadMoreButton')),
+        matching: find.byType(CircularProgressIndicator),
+      ),
+      findsOneWidget,
+    );
+
+    // Wait for the fetchItems to complete (1 second as defined in BLoC)
+    await tester.pump(const Duration(seconds: 1));
+
+    // Allow all animations and state transitions to settle
+    await tester.pumpAndSettle();
+
+    // Verify that additional items are loaded (Items 6 to 10)
+    for (int i = 6; i <= 10; i++) {
+      expect(find.text('Item $i'), findsOneWidget);
+      expect(find.text('Description for item $i'), findsOneWidget);
+    }
+
+    // Verify that initial items are still present
+    for (int i = 1; i <= 5; i++) {
+      expect(find.text('Secondary Preloaded Item $i'), findsOneWidget);
+      expect(find.text('Description for secondary preloaded item $i'),
+          findsOneWidget);
+    }
+
+    // Verify that no loading indicator is present after loading more items
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('loadMoreButton')),
+        matching: find.byType(CircularProgressIndicator),
+      ),
+      findsNothing,
+    );
+  });
 }
