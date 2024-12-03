@@ -466,6 +466,7 @@ class _ManualInfiniteListViewState<T>
                 boxShadow: widget.boxShadow,
               ),
               child: ListView.separated(
+                padding: EdgeInsets.zero,
                 // Respect the shrinkWrap parameter
                 shrinkWrap: widget.shrinkWrap,
                 physics: widget.physics ??
@@ -507,11 +508,8 @@ class _ManualInfiniteListViewState<T>
       child: widget.loadMoreButtonBuilder?.call(context) ??
           ElevatedButton(
             key: const Key('loadMoreButton'), // Assigning a unique key here
-            onPressed: isLoading
-                ? null
-                : () {
-                    widget.bloc.add(LoadMoreItemsEvent());
-                  },
+            onPressed:
+                isLoading ? null : () => widget.bloc.add(LoadMoreItemsEvent()),
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 50),
               backgroundColor: Colors.deepPurple,
