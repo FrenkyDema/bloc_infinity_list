@@ -129,6 +129,9 @@ abstract class InfiniteListView<T> extends StatefulWidget {
   /// ```
   final BoolCallbackAction? showLastDivider;
 
+  /// The margin for the list view.
+  final EdgeInsetsGeometry? margin;
+
   /// The padding for the list view.
   final EdgeInsetsGeometry? padding;
 
@@ -162,6 +165,7 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     this.noMoreItemWidget,
     this.dividerWidget,
     this.showLastDivider,
+    this.margin,
     this.padding,
     this.backgroundColor,
     this.borderRadius,
@@ -186,6 +190,7 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     Widget Function(BuildContext context)? noMoreItemWidget,
     Widget? dividerWidget,
     BoolCallbackAction? showLastDivider,
+    EdgeInsetsGeometry? margin,
     EdgeInsetsGeometry? padding,
     Color? backgroundColor,
     BorderRadiusGeometry? borderRadius,
@@ -204,6 +209,7 @@ abstract class InfiniteListView<T> extends StatefulWidget {
       noMoreItemWidget: noMoreItemWidget,
       dividerWidget: dividerWidget,
       showLastDivider: showLastDivider,
+      margin: margin,
       padding: padding,
       backgroundColor: backgroundColor,
       borderRadius: borderRadius,
@@ -231,6 +237,7 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     Widget Function(BuildContext context)? noMoreItemWidget,
     Widget? dividerWidget,
     BoolCallbackAction? showLastDivider,
+    EdgeInsetsGeometry? margin,
     EdgeInsetsGeometry? padding,
     Color? backgroundColor,
     BorderRadiusGeometry? borderRadius,
@@ -251,6 +258,7 @@ abstract class InfiniteListView<T> extends StatefulWidget {
       noMoreItemWidget: noMoreItemWidget,
       dividerWidget: dividerWidget,
       showLastDivider: showLastDivider,
+      margin: margin,
       padding: padding,
       backgroundColor: backgroundColor,
       borderRadius: borderRadius,
@@ -278,6 +286,7 @@ class _AutomaticInfiniteListView<T> extends InfiniteListView<T> {
     super.noMoreItemWidget,
     super.dividerWidget,
     super.showLastDivider,
+    super.margin,
     super.padding,
     super.backgroundColor,
     super.borderRadius,
@@ -359,6 +368,7 @@ class _AutomaticInfiniteListViewState<T>
                   (state) => state is LoadedState<T> || state is ErrorState<T>);
             },
             child: Container(
+              margin: widget.margin,
               padding: widget.padding,
               decoration: BoxDecoration(
                 color: widget.backgroundColor,
@@ -453,6 +463,7 @@ class _ManualInfiniteListView<T> extends InfiniteListView<T> {
     super.noMoreItemWidget,
     super.dividerWidget,
     super.showLastDivider,
+    super.margin,
     super.padding,
     super.backgroundColor,
     super.borderRadius,
@@ -501,6 +512,7 @@ class _ManualInfiniteListViewState<T>
                   (state) => state is LoadedState<T> || state is ErrorState<T>);
             },
             child: Container(
+              margin: widget.margin,
               padding: widget.padding,
               decoration: BoxDecoration(
                 color: widget.backgroundColor,
