@@ -26,7 +26,7 @@ class ListItem {
 /// A custom BLoC that extends [InfiniteListBloc] to fetch [ListItem]s.
 class MyCustomBloc extends InfiniteListBloc<ListItem> {
   /// Constructor accepts an optional list of initial items.
-  MyCustomBloc({super.initialItems});
+  MyCustomBloc({super.initialItems, super.limitFetch});
 
   @override
   Future<List<ListItem>> fetchItems({
@@ -323,7 +323,12 @@ class _ManualInfiniteListPageState extends State<ManualInfiniteListPage> {
         physics: const BouncingScrollPhysics(),
         itemBuilder: _buildListItem,
         loadMoreButtonBuilder: _buildLoadMoreButton,
-        dividerWidget: const SizedBox(height: 0),
+        dividerWidget: const Divider(
+          height: 2,
+          thickness: 1,
+          indent: 20,
+        ),
+        showLastDivider: () => _bloc.state is! NoMoreItemsState,
         loadingWidget: _buildLoadingWidget,
         errorWidget: _buildErrorWidget,
         emptyWidget: _buildEmptyWidget,
@@ -485,7 +490,7 @@ class _ManualInfiniteListPageWithInitialItemsState
       ),
     );
     // Initialize the bloc with initial items
-    _bloc = MyCustomBloc(initialItems: initialItems);
+    _bloc = MyCustomBloc(initialItems: initialItems, limitFetch: 5);
   }
 
   @override

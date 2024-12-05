@@ -12,7 +12,7 @@ part 'infinite_list_state.dart';
 abstract class InfiniteListBloc<T>
     extends Bloc<InfiniteListEvent, BaseInfiniteListState<T>> {
   /// Default limit for fetching items in a single request.
-  static const int defaultLimit = 10;
+  late int defaultLimit = 10;
 
   /// A list of initial items to preload, if any.
   final List<T>? initialItems;
@@ -22,6 +22,7 @@ abstract class InfiniteListBloc<T>
   /// Optionally accepts [initialItems] to set up the initial state.
   InfiniteListBloc({
     this.initialItems,
+    int? limitFetch,
   }) : super(
           initialItems != null && initialItems.isNotEmpty
               ? LoadedState<T>(
@@ -31,6 +32,7 @@ abstract class InfiniteListBloc<T>
                 )
               : InitialState<T>(),
         ) {
+    defaultLimit = limitFetch ?? 10;
     on<LoadItemsEvent>(_onLoadItems);
     on<LoadMoreItemsEvent>(_onLoadMoreItems);
   }

@@ -5,6 +5,27 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'infinite_list_bloc/infinite_list_bloc.dart';
 
+/// A typedef representing a callback function that returns a boolean value.
+///
+/// This callback is typically used to determine conditional behaviors within the
+/// [InfiniteListView], such as whether to display the last divider in the list.
+///
+/// ## Usage Example
+///
+/// ```dart
+/// bool shouldShowLastDivider() {
+///   // Your logic here
+///   return true;
+/// }
+///
+/// InfiniteListView<MyItem>.manual(
+///   bloc: myInfiniteListBloc,
+///   itemBuilder: (context, item) => ListTile(title: Text(item.title)),
+///   showLastDivider: shouldShowLastDivider,
+/// );
+/// ```
+typedef BoolCallbackAction = bool Function();
+
 /// An abstract class representing an infinite scrolling list view.
 ///
 /// This class provides factory constructors to create instances of infinite
@@ -90,6 +111,27 @@ abstract class InfiniteListView<T> extends StatefulWidget {
   /// A widget to display between the items in the list.
   final Widget? dividerWidget;
 
+  /// A callback to determine whether to show the last divider in the list.
+  ///
+  /// When building the list items, [InfiniteListView] uses this callback to decide
+  /// if the divider should be displayed after the final item in the list. This is
+  /// useful for scenarios where the last item should not have a trailing divider,
+  /// or when additional conditions need to be met.
+  ///
+  /// ## Example
+  ///
+  /// ```dart
+  /// InfiniteListView<MyItem>.manual(
+  ///   bloc: myInfiniteListBloc,
+  ///   itemBuilder: (context, item) => ListTile(title: Text(item.title)),
+  ///   showLastDivider: () => false, // Hides the last divider
+  /// );
+  /// ```
+  final BoolCallbackAction? showLastDivider;
+
+  /// The margin for the list view.
+  final EdgeInsetsGeometry? margin;
+
   /// The padding for the list view.
   final EdgeInsetsGeometry? padding;
 
@@ -122,6 +164,8 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     this.emptyWidget,
     this.noMoreItemWidget,
     this.dividerWidget,
+    this.showLastDivider,
+    this.margin,
     this.padding,
     this.backgroundColor,
     this.borderRadius,
@@ -145,6 +189,8 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     Widget Function(BuildContext context)? emptyWidget,
     Widget Function(BuildContext context)? noMoreItemWidget,
     Widget? dividerWidget,
+    BoolCallbackAction? showLastDivider,
+    EdgeInsetsGeometry? margin,
     EdgeInsetsGeometry? padding,
     Color? backgroundColor,
     BorderRadiusGeometry? borderRadius,
@@ -162,6 +208,8 @@ abstract class InfiniteListView<T> extends StatefulWidget {
       emptyWidget: emptyWidget,
       noMoreItemWidget: noMoreItemWidget,
       dividerWidget: dividerWidget,
+      showLastDivider: showLastDivider,
+      margin: margin,
       padding: padding,
       backgroundColor: backgroundColor,
       borderRadius: borderRadius,
@@ -188,6 +236,8 @@ abstract class InfiniteListView<T> extends StatefulWidget {
     Widget Function(BuildContext context)? emptyWidget,
     Widget Function(BuildContext context)? noMoreItemWidget,
     Widget? dividerWidget,
+    BoolCallbackAction? showLastDivider,
+    EdgeInsetsGeometry? margin,
     EdgeInsetsGeometry? padding,
     Color? backgroundColor,
     BorderRadiusGeometry? borderRadius,
@@ -207,6 +257,8 @@ abstract class InfiniteListView<T> extends StatefulWidget {
       emptyWidget: emptyWidget,
       noMoreItemWidget: noMoreItemWidget,
       dividerWidget: dividerWidget,
+      showLastDivider: showLastDivider,
+      margin: margin,
       padding: padding,
       backgroundColor: backgroundColor,
       borderRadius: borderRadius,
@@ -233,6 +285,8 @@ class _AutomaticInfiniteListView<T> extends InfiniteListView<T> {
     super.emptyWidget,
     super.noMoreItemWidget,
     super.dividerWidget,
+    super.showLastDivider,
+    super.margin,
     super.padding,
     super.backgroundColor,
     super.borderRadius,
@@ -314,6 +368,7 @@ class _AutomaticInfiniteListViewState<T>
                   (state) => state is LoadedState<T> || state is ErrorState<T>);
             },
             child: Container(
+              margin: widget.margin,
               padding: widget.padding,
               decoration: BoxDecoration(
                 color: widget.backgroundColor,
@@ -407,6 +462,8 @@ class _ManualInfiniteListView<T> extends InfiniteListView<T> {
     super.emptyWidget,
     super.noMoreItemWidget,
     super.dividerWidget,
+    super.showLastDivider,
+    super.margin,
     super.padding,
     super.backgroundColor,
     super.borderRadius,
@@ -455,6 +512,7 @@ class _ManualInfiniteListViewState<T>
                   (state) => state is LoadedState<T> || state is ErrorState<T>);
             },
             child: Container(
+              margin: widget.margin,
               padding: widget.padding,
               decoration: BoxDecoration(
                 color: widget.backgroundColor,
@@ -466,6 +524,7 @@ class _ManualInfiniteListViewState<T>
                 boxShadow: widget.boxShadow,
               ),
               child: ListView.separated(
+                padding: EdgeInsets.zero,
                 // Respect the shrinkWrap parameter
                 shrinkWrap: widget.shrinkWrap,
                 physics: widget.physics ??
@@ -475,8 +534,13 @@ class _ManualInfiniteListViewState<T>
                 // - If shrinkWrap is true, disable internal scrolling
                 // - If shrinkWrap is false, enable scrolling based on the provided physics
                 itemCount: items.length + 1,
-                separatorBuilder: (context, index) =>
-                    widget.dividerWidget ?? const SizedBox.shrink(),
+                separatorBuilder: (context, index) {
+                  if (index != items.length - 1 ||
+                      (widget.showLastDivider?.call() ?? true)) {
+                    return widget.dividerWidget ?? const SizedBox.shrink();
+                  }
+                  return const SizedBox.shrink();
+                },
                 itemBuilder: (context, index) {
                   if (index < items.length) {
                     return widget.itemBuilder(context, items[index]);
@@ -507,11 +571,8 @@ class _ManualInfiniteListViewState<T>
       child: widget.loadMoreButtonBuilder?.call(context) ??
           ElevatedButton(
             key: const Key('loadMoreButton'), // Assigning a unique key here
-            onPressed: isLoading
-                ? null
-                : () {
-                    widget.bloc.add(LoadMoreItemsEvent());
-                  },
+            onPressed:
+                isLoading ? null : () => widget.bloc.add(LoadMoreItemsEvent()),
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 50),
               backgroundColor: Colors.deepPurple,
